@@ -59,7 +59,7 @@
 1. **โคลนที่เก็บข้อมูล** ลงในพื้นที่ทำงานของคุณ:
 
    ```bash
-   git clone https://github.com/Sopehurt/Exam1-.git
+   git clone https://github.com/beamkeerati/ros2_ws.git
    ```
 
 2. **ไปที่โฟลเดอร์งาน**:
@@ -69,16 +69,15 @@
    ```
 
 
-3. **Build** โดยใช้ colcon build:
+3. **Build** โดยจะต้องลบโฟลเดอร์ build install log ออกก่อนจากนั้นจึงใช้ colcon build:
 
    ```bash
-   colcon build
+   rm -rf build install log && colcon build
    ```
 
 4. **Source the workspace**:
 
    ```bash
-   cd
    source install/setup.bash
    ```
 
