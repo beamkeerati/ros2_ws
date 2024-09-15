@@ -1,0 +1,346 @@
+#!/usr/bin/python3
+
+from turtle_fun.dummy_module import dummy_function, dummy_var
+import rclpy
+from rclpy.node import Node
+
+from tf2_ros import TransformBroadcaster
+from geometry_msgs.msg import Twist, Point, TransformStamped, PoseStamped
+from turtlesim.msg import Pose
+from turtlesim_plus_interfaces.srv import GivePosition
+from std_srvs.srv import Empty
+from std_msgs.msg import String
+from controller_manager_msgs.srv import LoadController,ConfigureController
+from param_interfaces.srv import SetControllerGain, SetNumberPizza
+import math
+import numpy as np
+import yaml
+import os
+
+
+class ControllerNode(Node):
+    def __init__(self):
+        super().__init__('controller_node')
+        
+        #Set Callback Frequency
+        self.declare_parameter("frequency", 100.0)
+        self.frequency = self.get_parameter("frequency").get_parameter_value().double_value
+        self.create_timer(1 / self.frequency, self.timer_callback)
+        
+        #Set Turtlesim_plus protocol
+        self.cmd_vel_pub = self.create_publisher(Twist, "turtle1/cmd_vel", 10)
+        self.create_subscription(Pose, "turtle1/pose", self.pose_callback, 10)
+        self.spawn_pizza_client = self.create_client(GivePosition, "/spawn_pizza")
+        self.eat_pizza_client = self.create_client(Empty, "turtle1/eat")
+        self.switch_state_client = self.create_client(ConfigureController, "switch_state")
+        self.create_subscription(Point, "/mouse_position", self.mouse_position_callback, 10)
+        self.create_subscription(String, "current_state", self.current_state_callback, 10)
+        self.key_command_server = self.create_service(ConfigureController, "key_command_server", self.keyboard_server_callback)
+        self.num_usable_pizza_server = self.create_service(SetNumberPizza, "num_usable_pizza_server", self.num_usable_pizza_server_callback)
+        self.set_controller_gain_server = self.create_service(SetControllerGain,"set_controller_gain",self.set_controller_gain_server_callback)
+        self.yaml_create()
+        
+        #Set Turtle Parameter
+        self.current_state = "IDLE"
+        self.num_usable_pizza = 50
+        self.mouse_pose = np.array([0.0, 0.0])
+        self.key_pose = [0.0, 0.0]
+        self.robot_pose = np.array([0.0, 0.0, 0.0])
+        self.target_position = np.array([0.0, 0.0])
+        self.queue = np.array([[0.0, 0.0]])
+        self.run = True
+        self.kp_d = 5.5
+        self.kp_theta = 10.5
+        self.save_count = 0
+        self.not_save_list = []
+        self.dem = [0.0,0,0]
+
+        
+        #yaml save
+        self.path_index = 0
+        self.position_data = []
+        self.yaml_paths = {
+            'path1': [],
+            'path2': [],
+            'path3': [],
+            'path4': []
+        }
+        
+        #Clear pizza
+        self.clear = []
+        
+        self.get_logger().info("controller_node has been started.")
+
+
+
+    def yaml_create(self):
+        empty_data = {}  # Or [] if you want an empty list
+
+        # Write to the YAML file
+        with open('position/pos2.yaml', 'w') as file:
+            yaml.dump(empty_data, file)
+            self.pizza_list = {'position_1': [],
+                               'position_2': [],
+                               'position_3': [], 
+                               'position_4': [], 
+                                }
+            
+        
+    def yaml_write(self):
+        with open('position/pos2.yaml', 'w') as file:
+            yaml.dump(self.pizza_list, file)
+            self.get_logger().info(f"Saved positions to ")
+        
+
+
+
+        
+    def set_controller_gain_server_callback(self,request:SetControllerGain,response:SetControllerGain):
+        self.kp_d = float(request.kp_d)
+        self.kp_theta = float(request.kp_theta)
+        return response
+        
+    def num_usable_pizza_server_callback(self, request:SetNumberPizza, response:SetNumberPizza):
+        self.num_usable_pizza = int(request.num_usable_pizza)
+        return response
+        
+
+
+
+
+
+
+
+    def keyboard_server_callback(self, request:ConfigureController, response:ConfigureController):
+        key = str(request.name)
+        self.get_logger().info(f"Current State: {self.current_state} | Pressed: {key}")
+        
+        if key == 'r':
+            self.num_usable_pizza = 50
+
+        if key == 'i' and self.num_usable_pizza>0:
+            self.current_state == "DRAW"
+            self.switch_state("DRAW")
+            
+            self.key_pose[0] = self.robot_pose[0]
+            self.key_pose[1] = self.robot_pose[1]
+            pos = [0.0, 0.0]
+            pos[0] = float(self.key_pose[0])
+            pos[1] = float(self.key_pose[1])
+
+            self.not_save_list.append(pos)
+
+            self.get_logger().info(f"pose: {self.not_save_list}")
+
+            if self.save_count == 0:
+                self.pizza_list['position_1'].append(pos)
+
+            elif self.save_count == 1:
+                self.pizza_list['position_2'].append(pos)
+
+            elif self.save_count == 2:
+                self.pizza_list['position_3'].append(pos)
+
+            elif self.save_count == 3:
+                self.pizza_list['position_4'].append(pos)
+            
+            else:
+                pass
+
+            self.spawn_pizza(self.key_pose[0], self.key_pose[1])
+            self.num_usable_pizza -=1
+            self.position_data.append([float(self.key_pose[0]), float(self.key_pose[1])])
+            self.get_logger().info(f"Captured position: {self.position_data[-1]} | Pizza Left {self.num_usable_pizza}")
+            self.current_state == "IDLE"
+            self.switch_state("IDLE")
+        
+        if key =='o' :
+            self.current_state == "SAVE"
+            self.switch_state("SAVE")
+            self.save_count += 1
+            self.not_save_list = []
+            self.yaml_write()
+
+
+        if key == 'p' :
+            if self.not_save_list == [] :
+                pass
+            elif self.not_save_list != []:
+
+                for i in range(len(self.not_save_list)): 
+
+                    self.dem[0] = self.not_save_list[i][0]
+                    self.dem[1] = self.not_save_list[i][1]
+
+                    Kp = 4
+                    Kp2 = 2
+
+                    del_x = self.dem[0] - self.robot_pose[0]       
+                    del_y = self.dem[1] - self.robot_pose[1]       
+                    d = math.sqrt((del_x**2)+(del_y**2))               
+                    turtle_alpha = math.atan2(del_y,del_x)             
+                    turtle_theta = self.robot_pose[2]                  
+                    turtle_angular = turtle_alpha - turtle_theta       
+                    e = math.atan2(math.sin(turtle_angular),math.sin(turtle_angular))  
+                
+                    vx = Kp * d
+                    w = Kp2 * e
+                    self.cmdvel(vx,w)
+                    self.eat_pizza()
+
+                        
+
+
+        return response
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        
+    def current_state_callback(self, msg:String):
+        self.current_state = msg.data
+
+    def mouse_position_callback(self, msg):
+        if self.current_state == "TEST2":
+            self.mouse_pose[0] = msg.x
+            self.mouse_pose[1] = msg.y
+            self.spawn_pizza(self.mouse_pose[0], self.mouse_pose[1])
+            # self.target_position = self.mouse_pose
+            self.queue = np.append(self.queue, [self.mouse_pose], axis=0)
+            print(self.mouse_pose)
+            
+    def pose_callback(self, msg):
+        # print(msg)
+        self.robot_pose[0] = msg.x
+        self.robot_pose[1] = msg.y
+        self.robot_pose[2] = msg.theta
+        
+    def switch_state(self,state):
+        state_request = ConfigureController.Request()
+        state_request.name = str(state)
+        self.switch_state_client.call_async(state_request)
+
+    def eat_pizza(self):
+        eat_request = Empty.Request()
+        self.eat_pizza_client.call_async(eat_request)
+
+    def spawn_pizza(self, x, y):
+        position_request = GivePosition.Request()
+        position_request.x = x
+        position_request.y = y
+        self.spawn_pizza_client.call_async(position_request)
+
+
+
+    def save_yaml(self, data):
+        script_dir = os.path.dirname(os.path.abspath(__file__))
+        yaml_dir = os.path.join(script_dir, '..', 'yaml')
+        os.makedirs(yaml_dir, exist_ok=True)
+        yaml_path = os.path.join(yaml_dir, 'path.yaml')
+        with open(yaml_path, 'w') as file:
+            yaml.dump(data, file, default_flow_style=False)
+
+    def cmdvel(self, v, w):
+        msg = Twist()
+        msg.linear.x = v
+        msg.angular.z = w
+        self.cmd_vel_pub.publish(msg)
+        
+    def walk_until_end(self):
+        num_rows, num_cols = self.queue.shape
+
+        if num_rows > 0:
+
+            self.run = True
+            
+            self.target_position = self.queue[0]
+            self.delta = self.target_position - self.robot_pose[:2]
+            self.dist = np.linalg.norm(self.delta)
+            self.target_theta = np.arctan2(self.delta[1], self.delta[0])
+            self.error_theta = self.target_theta - self.robot_pose[2]
+
+            self.cmdvel(self.kp_d * self.dist, self.kp_theta * self.error_theta)
+
+            if self.error_theta > np.pi:
+                self.error_theta -= 2 * np.pi
+            elif self.error_theta < -np.pi:
+                self.error_theta += 2 * np.pi
+
+            if self.dist > 0.1:
+                if self.run:
+                    self.cmdvel(self.kp_d * self.dist, self.kp_theta * self.error_theta)
+                # self.eat_pizza()
+                print(f"Control {self.queue[0]} {self.dist}")
+            else:
+                self.cmdvel(0.0, 0.0)
+                if self.run:
+                    self.eat_pizza()
+                    self.queue = np.delete(self.queue, 0, axis=0)
+                    
+        else:
+            self.cmdvel(0.0, 0.0)
+            self.eat_pizza()
+            print(f"Finished {num_rows}")
+            self.current_state == "IDLE"
+            self.switch_state("IDLE")
+            
+    def timer_callback(self):
+        # self.cmdvel(0.1,0.5)
+        if self.current_state == "Q":
+            self.queue = np.array(self.position_data)
+            print(f"Set {self.queue}")
+            self.current_state == "IDLE"
+            self.switch_state("IDLE")
+            
+        if self.current_state == "CLEAR":
+            self.walk_until_end()
+
+        
+        # elif self.current_state == "DRAW":
+            
+        #     pass
+
+def main(args=None):
+    rclpy.init(args=args)
+    node = ControllerNode()
+    rclpy.spin(node)
+    node.destroy_node()
+    rclpy.shutdown()
+
+if __name__=='__main__':
+    main()
+    

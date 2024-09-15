@@ -1,0 +1,2 @@
+Invoking command in '/home/beamkeerati/ros2_ws/build/param_interfaces': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/opt/ros/humble /usr/bin/cmake /home/beamkeerati/ros2_ws/src/param_interfaces -DCMAKE_INSTALL_PREFIX=/home/beamkeerati/ros2_ws/install/param_interfaces
+Invoked command in '/home/beamkeerati/ros2_ws/build/param_interfaces' returned '1': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/opt/ros/humble /usr/bin/cmake /home/beamkeerati/ros2_ws/src/param_interfaces -DCMAKE_INSTALL_PREFIX=/home/beamkeerati/ros2_ws/install/param_interfaces

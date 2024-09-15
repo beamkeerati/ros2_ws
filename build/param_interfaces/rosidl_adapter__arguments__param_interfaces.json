@@ -1,0 +1,7 @@
+{
+  "package_name": "param_interfaces",
+  "non_idl_tuples": [
+    "/home/beamkeerati/ros2_ws/src/param_interfaces:srv/SetControllerGain.srv",
+    "/home/beamkeerati/ros2_ws/src/param_interfaces:srv/SetNumberPizza.srv"
+  ]
+}
