@@ -1,9 +1,0 @@
-{
-  "package_name": "turtlesim_plus_interfaces",
-  "non_idl_tuples": [
-    "/home/beamkeerati/ros2_ws/src/turtlesim_plus/turtlesim_plus_interfaces:msg/ScannerData.msg",
-    "/home/beamkeerati/ros2_ws/src/turtlesim_plus/turtlesim_plus_interfaces:msg/ScannerDataArray.msg",
-    "/home/beamkeerati/ros2_ws/src/turtlesim_plus/turtlesim_plus_interfaces:srv/GivePosition.srv",
-    "/home/beamkeerati/ros2_ws/src/turtlesim_plus/turtlesim_plus_interfaces:action/GetData.action"
-  ]
-}

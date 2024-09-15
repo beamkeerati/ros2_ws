@@ -1,7 +1,0 @@
-setup.py
-turtle_fun/__init__.py
-turtle_fun/dummy_module.py
-turtle_fun.egg-info/PKG-INFO
-turtle_fun.egg-info/SOURCES.txt
-turtle_fun.egg-info/dependency_links.txt
-turtle_fun.egg-info/top_level.txt

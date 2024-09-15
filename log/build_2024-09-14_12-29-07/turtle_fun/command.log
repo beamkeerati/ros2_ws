@@ -1,6 +1,0 @@
-Invoking command in '/home/beamkeerati/ros2_ws/build/turtle_fun': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/opt/ros/humble /usr/bin/cmake /home/beamkeerati/ros2_ws/src/turtle_fun -DCMAKE_INSTALL_PREFIX=/home/beamkeerati/ros2_ws/install/turtle_fun
-Invoked command in '/home/beamkeerati/ros2_ws/build/turtle_fun' returned '0': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/opt/ros/humble /usr/bin/cmake /home/beamkeerati/ros2_ws/src/turtle_fun -DCMAKE_INSTALL_PREFIX=/home/beamkeerati/ros2_ws/install/turtle_fun
-Invoking command in '/home/beamkeerati/ros2_ws/build/turtle_fun': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/opt/ros/humble /usr/bin/cmake --build /home/beamkeerati/ros2_ws/build/turtle_fun -- -j16 -l16
-Invoked command in '/home/beamkeerati/ros2_ws/build/turtle_fun' returned '0': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/opt/ros/humble /usr/bin/cmake --build /home/beamkeerati/ros2_ws/build/turtle_fun -- -j16 -l16
-Invoking command in '/home/beamkeerati/ros2_ws/build/turtle_fun': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/opt/ros/humble /usr/bin/cmake --install /home/beamkeerati/ros2_ws/build/turtle_fun
-Invoked command in '/home/beamkeerati/ros2_ws/build/turtle_fun' returned '0': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/opt/ros/humble /usr/bin/cmake --install /home/beamkeerati/ros2_ws/build/turtle_fun
